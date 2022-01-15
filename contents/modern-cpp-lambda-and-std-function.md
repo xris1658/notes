@@ -7,7 +7,7 @@ int a = 0;
 auto l1 = [&a]() { a += 1; };
 auto l2 = [&a]() { a += 2; };
 std::cout << std::boolalpha
-          << std::is_same_type_v<decltype(l1), decltype(l2)>
+          << std::is_same_v<decltype(l1), decltype(l2)>
           << std::endl; // 输出 false
 ```
 `std::function` 的类型由参数类型和返回类型决定。
@@ -15,7 +15,7 @@ std::cout << std::boolalpha
 std::function<void()> f1(l1);
 std::function<void()> f2(l2);
 std::cout << std::boolalpha
-          << std::is_same_type_v<decltype(f1), decltype(f2)>
+          << std::is_same_v<decltype(f1), decltype(f2)>
           << std::endl; // 输出 true
 ```
 在实际用途中，这一区别可能会导致序行为上的不同。
