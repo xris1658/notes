@@ -18,9 +18,9 @@ std::cout << std::boolalpha
           << std::is_same_v<decltype(f1), decltype(f2)>
           << std::endl; // 输出 true
 ```
-在实际用途中，这一区别可能会导致序行为上的不同。
+在实际使用中，这一区别可能会导致程序行为上的不同。
 
-我们知道，现代 C++ 中，可以使用 magic static 来实现单例模式。根据这一方式，我们可以让一些用于初始化的函数只执行一次。下面是这一想法的一个简单的实现：
+我们知道，现代 C++ 中，可以使用 magic static 来实现线程安全的单例模式。根据这一方式，我们可以让一些用于初始化的函数只执行一次。下面是这一想法的一个简单的实现：
 ```cpp
 // 文件：Initializer.hpp
 template<typename FunctorType>
@@ -105,13 +105,21 @@ int main()
 
 细心的读者应该注意到了开头的“通常”二字。接下来就提一下特殊情况。
 
-C++14 开始，Lambda 表达式有了复制构造和移动构造的能力。引入这一点后，我们可以写出这样的代码：
+Lambda 表达式拥有复制构造和移动构造的能力。引入这一点后，我们可以写出这样的代码：
 ```cpp
 int a = 0;
 auto l1 = [&a]() { ++a; };
 auto l2 = l1; // 调用了复制构造
-std::cout << std::is_same_v<decltype(l1), decltype(l2)> << std::endl; // 输出 true
+std::cout << std::boolalpha
+          << std::is_same_v<decltype(l1), decltype(l2)>
+          << std::endl; // 输出 true
 ```
-这一代码片段中，`l1` 和 `l2` 的类型相同。因此，我们需要对开头的陈述进行一些修改：
+这一代码片段中，`l1` 和 `l2` 的类型相同。
+
+因此，我们需要对开头的陈述进行一些修改：
 - 通常，每一个 Lambda 表达式的类型都是独一无二的。
 - 使用复制构造或者移动构造初始化的 Lambda 表达式与构造时传入的实参具有相同的类型。
+
+注意：
+用 magic static 可以实现线程安全的单例模式。
+值得注意的例外是 MSVC 的一些旧版本：这些版本虽然支持现代 C++，但是不能用 magic static 实现线程安全的单例模式。
