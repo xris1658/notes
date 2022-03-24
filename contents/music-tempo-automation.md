@@ -122,7 +122,7 @@ B(t)=(1-t)^2 P_0+2(1-t)tP_1+t^2 P_2，0\leq t \leq 1
 $$
 
 绘制这一参数方程的图象，得出的图象就是一条二次贝塞尔曲线。
-![通过端点和控制点得到二次贝塞尔曲线](https://i.stack.imgur.com/CM0cL.jpg)
+![通过端点和控制点得到二次贝塞尔曲线](https://i.stack.imgur.com/CM0cL.jpg)  
 图源：[Convert quadratic bezier curve to parabola - Mathematics Stack Exchange](https://math.stackexchange.com/questions/1257576/convert-quadratic-bezier-curve-to-parabola)
 
 我们关心的是它的两条重要性质：
