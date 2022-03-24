@@ -57,7 +57,7 @@ int main()
 
 我们来深入一些，看看各个对象的生存期。
 可以发现，`info` 是主函数中的局部对象，会在主函数结束时销毁；而 `instance()` 中的 `ret` 是一个静态对象，在主函数结束后销毁。
-如果我们使用的这个类库在 `init` 时，会保有 `info` 的引用，或者指向 `info` 的指针，而且卸载时需要使用这个地址，那么问题来了：`ret` 销毁时，`info` 已经不存在了，保有的引用变成了悬垂引用，或者保有的指针变成了悬垂指针。因而尝试使用保有的信息会导致未定义行为。
+如果我们使用的这个类库在 `init` 时，会保有 `info` 的引用，或者指向 `info` 的指针，而且卸载时需要使用这个 `info`，那么问题来了：`ret` 销毁时，`info` 已经不存在了，保有的引用变成了悬垂引用，或者保有的指针变成了悬垂指针。因而尝试使用保有的信息会导致未定义行为。
 ### 问题复现 - 例二
 我们来看一个更具体的例子。我们要编写一款音频处理软件，需要使用 ASIO 驱动与音频硬件通信。在 Windows 平台下，它使用了 COM。我们可以找到驱动的 CLSID，进行加载。相关的部分接口如下：
 ```cpp
@@ -169,11 +169,11 @@ int main()
     return 0;
 }
 ```
-使用移动赋值运算符时发生了什么？很简单。我们将 magic static 对象和一个空的 RAII 交换。交换后 magic static 对象成了空的 RAII，而 `ASIODriverRAII()` 变成了原来 magic static 的 RAII，紧接着进行析构。这样，我们就成功地在主函数结束前卸载了驱动。
+使用移动赋值运算符时发生了什么？很简单。我们将 magic static 对象和一个空的 RAII 交换。交换后 magic static 对象成了空的 RAII 对象，而通过 `ASIODriverRAII()` 构造的临时对象变成了原来 magic static 的 RAII 对象，紧接着对换出的 RAII 对象进行析构。这样，我们就成功地在主函数结束前卸载了驱动。
 
-有人可能注意到移动赋值运算符实际上执行的是一个交换的动作，于是问：“我不加 `operator=`，加一个专门用来交换的函数，然后继续用 magic static，可以吗？”我的答案是不太合适。
+这样的解决方法使用了现代 C++ 的移动语义。如果还在用 C++98/C++03 的话，只好用另一种变通的办法了。
 
-我们观察 C++ 标准库，可以发现交换操作通常以两种形式出现：
+我们观察原来使用移动赋值的代码，可以发现它实际上执行了一次交换，执行换成后，紧接着换出的 RAII 对象被销毁。观察 C++ 标准库，可以发现交换操作通常以两种形式出现：
 ```cpp
 namespace std
 {
@@ -187,9 +187,9 @@ template<class T>
 void swap(T& lhs, T& rhs);
 }
 ```
-可以发现，交换两个对象的前提是两个对象可写（因此 `swap` 传入的是 non-`const` 左值引用，且作为成员函数的 `swap` 不是 `const`）。
-通过这一点，我们很容易得知 `swap` 用在 magic static + RAII 的场景下不合适的原因。
-假设我们为 `ASIODriverRAII` 添加了上面的两种交换操作：
+注意，标准库中交换两个对象的前提是两个对象可写（因此 `swap` 传入的是 non-`const` 左值引用，且作为成员函数的 `swap` 不是 `const`）。
+
+我们按照上面的代码为 `ASIODriverRAII` 添加交换操作：
 ```cpp
 class ASIODriverRAII()
 {
@@ -213,33 +213,33 @@ template<> void swap(ASIODriverRAII& lhs, ASIODriverRAII& rhs)
 ```cpp
 AppASIODriver().swap(ASIODriverRAII());
 ```
-这样的代码。因为 `ASIODriverRAII()` 是个右值，要么绑到右值引用上，要么绑到 `const` 左值引用上，不能绑到 non-`const` 左值引用上。
-如果我们想要像原来的主函数中用交换操作，那么要改成这样：
+这样的代码。因为 `ASIODriverRAII()` 是个右值，只能绑到 `const` 左值引用上（现代 C++ 中也可以绑到右值引用上），不能绑到 non-`const` 左值引用上。  
+> 题外话：C 和 C++03 中允许让 non-`const` 指针指向字符串字面量：
+> ```cpp
+> char* ptr = "Hello"; // C 和 C++03 中合法
+> ```
+> 但修改字符串的内容是未定义行为：
+> ```cpp
+> char* ptr = "Hello"; // C 和 C++03 中合法
+> ptr[0] = 'J'; // 未定义行为：不能修改字符串的内容
+> ```
+> 现代 C++ 中禁止了这种行为。只能让 `const` 指针指向字符串字面量：
+> ```cpp
+> const char* ptr = "Hello";
+> ```
+
+如果我们想要用交换操作，那么要改成这样：
 ```cpp
 int main()
 {
     // ...
-    auto blank = ASIODriverRAII();
-    AppASIODriver().swap(blank);
+    {
+        auto blank = ASIODriverRAII();
+        AppASIODriver().swap(blank); // 交换操作
+    } // 紧接着换出的对象被析构
     return 0;
 }
 ```
-看起来没有问题，但是需要注意，保有之前驱动的 `blank` 不会立即销毁，而是等到主函数结束时才销毁。（如果使用移动赋值运算符，那么换出的 RAII 对象会立即销毁，因为是临时对象。）`blank` 被换掉之后就已经没了用，理应早点销毁，否则仍然有潜在的危险。比如有一天，我们觉得，可以把 `blank` 放在 `window` 的前面：
-```cpp
-int main()
-{
-    ASIODriverRAII blank;
-    QWindow window;
-    auto hWnd = reinterpret_cast<HWND>(window.winId());
-    const wchar_t clsid[] = L"{00000000-0000-0000-0000-000000000000}";
-    AppASIODriver() = ASIODriverRAII(clsid, hWnd);
-    // 进行一些操作
+多出的花括号是为了让换出的对象能够在交换完成后**紧接着**被析构。
 
-    // 移动赋值运算符
-    AppASIODriver().swap(blank);
-    return 0;
-}
-```
-那么问题来了：虽然 `AppASIODriver()` 能够成功销毁，但是 `window` 的析构会比 `blank` 的析构早，`blank` 无法正常销毁。典型的按下葫芦浮起瓢。
-
-我觉得这种问题的出现会很烦人，所以还是老实用移动赋值运算符吧。
+这下看起来不用管 C++ 版本的事了，不过要记住，magic static 在 C++98/C++03 中不是线程安全的，编写代码时需要注意相关的问题。

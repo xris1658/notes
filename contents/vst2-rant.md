@@ -41,9 +41,9 @@ public:
 // 省略部分代码
 VstPlugCategory AudioEffectX::getPlugCategory ()
 { 
-	if (cEffect.flags & effFlagsIsSynth)
-		return kPlugCategSynth;
-	return kPlugCategUnknown; 
+    if (cEffect.flags & effFlagsIsSynth)
+        return kPlugCategSynth;
+    return kPlugCategUnknown; 
 }
 ```
 `getPlugCategory` 就让人感到奇怪。如果插件不是乐器，则不知道插件的具体类型。实际上，Steinberg 在编写这个函数时是希望用户进行重写的：
@@ -51,10 +51,10 @@ VstPlugCategory AudioEffectX::getPlugCategory ()
 // 文件：vst20spec.pdf
 virtual VstPlugCategory getPlugCategory()
 {
-	if (cEffect.flags & effFlagsIsSynth)
-		return kPlugCategSynth;
+    if (cEffect.flags & effFlagsIsSynth)
+        return kPlugCategSynth;
     
-	return kPlugCategUnknown; 
+    return kPlugCategUnknown; 
 }
 // specify a category that fits your plug. See VstPlugCategory enumerator in aeffectx.h.
 ```
@@ -76,6 +76,3 @@ class MyPlugin: public AudioEffectX {}; // VST2
 如果作者没想这个问题呢？很遗憾，这个作者可能永远都不会意识到这个问题了。
 
 VST2 这种暗地挖坑，还允许用户半桶水晃荡的设计影响了不少插件，既有相当出名，几乎人手必备的付费插件，也有近期一些厂商停止维护并公开的免费插件。这些插件又影响了不少宿主程序：如果宿主程序不给插件作详细分类，那么宿主程序的作者写出的代码可以相当简单，代价就是 VST2 Shell 无法在宿主程序中正常使用。如果宿主程序想给插件作详细分类，想用 `effGetPlugCategory` 获取插件的详细类型，那么有些插件，**包括那些人手必备的插件**，就只能被归入“未知类型”。宿主程序的作者收到了一群用户的抱怨，结果发现是插件的锅，最后往往会决定“去 TMD，我不作详细归类了”。于是不作详细分类的宿主程序越来越多，插件作者更难以意识到详细分类的问题，从而形成了恶性循环。
-
-### VST3 是如何避免这种事情发生的？
- 
