@@ -12,7 +12,7 @@
 - `std::chrono::system_clock`
 - `std::chrono::high_resolution_clock`
 
-单从名字来看，`high_resolution_clock` 似乎是最满足我们的需求的时钟，然而这个时钟有一些小问题[1]：
+单从名字来看，`high_resolution_clock` 似乎是最满足我们的需求的时钟，然而这个时钟有一些小问题[^1]：
 
 > The `high_resolution_clock` is not implemented consistently across different standard library implementations, and its use should be avoided. It is often just an alias for `std::chrono::steady_clock` or `std::chrono::system_clock`, but which one it is depends on the library or configuration. When it is a `system_clock`, it is not monotonic (e.g., the time can go backwards). For example, for gcc's libstdc++ it is `system_clock`, for MSVC it is `steady_clock`, and for clang's libc++ it depends on configuration.
 
@@ -21,7 +21,7 @@
 这么一来，保证跨平台（包括编译器）一致的选择就只剩下了 `steady_clock`。合适的时钟是选出来了，但事情还没有完。
 
 ### `steady_clock` 在 MSVC 下的实现
-`steady_clock` 在 MSVC 下是 Windows API 中的函数 `QueryPerformanceCounter`（以下简称为 QPC）的封装[2]。值得注意的是，我在微软的文档中注意到了一些额外的内容[3]：
+`steady_clock` 在 MSVC 下是 Windows API 中的函数 `QueryPerformanceCounter`（以下简称为 QPC）的封装[^2]。值得注意的是，我在微软的文档中注意到了一些额外的内容[^3]：
 > 3. Compute all timing on a single thread. Computation of timing on multiple threads — for example, with each thread associated with a specific processor — greatly reduces performance of multi-core systems.
 > 4. Set that single thread to remain on a single processor by using the Windows API `SetThreadAffinityMask`. Typically, this is the main game thread. While `QueryPerformanceCounter` and `QueryPerformanceFrequency` typically adjust for multiple processors, bugs in the BIOS or drivers may result in these routines returning different values as the thread moves from one processor to another. So, it's best to keep the thread on a single processor.
 
@@ -64,8 +64,10 @@ void timerThread()
 }
 ```
 
-### 参考
-[1] [`std::chrono::high_resolution_clock` - cppreference.com](https://en.cppreference.com/w/cpp/chrono/high_resolution_clock)
-[2] [`steady_clock` struct | Microsoft Docs](https://docs.microsoft.com/en-us/cpp/standard-library/steady-clock-struct?view=msvc-160#remarks)
-[3] [Game Timing and Multicore Processors - Win32 apps | Microsoft Docs](https://docs.microsoft.com/en-us/windows/win32/dxtecharts/game-timing-and-multicore-processors#recommendations)
-[4] [高精度计时器 `QueryPerformanceCounter` 正确的打开方式（windows环境下）_coffeecato的博客-CSDN博客_queryperformancecounter](https://blog.csdn.net/coffeecato/article/details/44656001)
+### 脚注
+[^1] [`std::chrono::high_resolution_clock` - cppreference.com](https://en.cppreference.com/w/cpp/chrono/high_resolution_clock)  
+[^2] [`steady_clock` struct | Microsoft Docs](https://docs.microsoft.com/en-us/cpp/standard-library/steady-clock-struct?view=msvc-160#remarks)  
+[^3] [Game Timing and Multicore Processors - Win32 apps | Microsoft Docs](https://docs.microsoft.com/en-us/windows/win32/dxtecharts/game-timing-and-multicore-processors#recommendations)
+
+### 其他参考
+[高精度计时器 `QueryPerformanceCounter` 正确的打开方式（windows环境下）_coffeecato的博客-CSDN博客_queryperformancecounter](https://blog.csdn.net/coffeecato/article/details/44656001)
