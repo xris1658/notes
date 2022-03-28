@@ -168,7 +168,7 @@ $$
 
 得到上面的两个值后，代入$(3)$，列出二元一次方程组，可解出 $a$ 与 $b$。然后将$a$，$b$ 与 $P_0$ 或 $P_2$ 的坐标代入$(2)$，即可求解出 $c$。
 
-接下来是二次函数的取倒求定积分。二次函数取倒求不定积分的公式如下：
+接下来是二次函数的取倒求定积分。查积分表可得到二次函数取倒求不定积分的公式：
 
 $$
 \int \frac{dx}{ax^2+bx+c}=
@@ -178,5 +178,48 @@ $$
 \end{cases}
 $$
 
-读者应该注意到一点，如果 $b^2=4ac$，那么取倒求积分是做不到的。我们要尝试在软件实现中避免这一情况的出现。实际上要避免也不算太难，在更新点值、更新控制点相关值时检查受影响的点，遇到 $b^2=4ac$ 的情况时，轻微修改控制点相关的值。
-
+如果 $b^2=4ac$，取倒求定积分的过程会简单不少。  
+令 $b^2 = 4ac$，则
+$$
+c = \frac{b^2}{4a}
+$$
+代入 $(2)$ 得 $(4)$
+$$
+\begin{aligned}
+y &= ax^2+bx+\frac{b^2}{4a}\\
+  &= a(x^2+\frac{b}{a}x+\frac{b^2}{4a^2})\\
+  &= a(x+\frac{b}{2a})^2
+\end{aligned}
+$$
+对 $(4)$ 取倒求定积分 $(5)$：
+$$
+\begin{aligned}
+\int_{m}^{n} \frac{1}{y}dx
+&= \int_{m}^{n} \frac{1}{a(x + \frac{b}{2a})^2}dx\\
+&= \frac{1}{a} \int_{m}^{n} \frac{1}{(x + \frac{b}{2a})^2}dx
+\end{aligned}
+$$
+令 $t = x + \frac{b}{2a}$，则有 $(6)$
+$$
+\begin{cases}
+x = t - \frac{b}{2a}\\
+dx=dt\\
+\end{cases}
+$$
+当 $x=m$ 时，$t=m + \frac{b}{2a}$；$x=n$ 时，$t=n + \frac{b}{2a}$。  
+将 $(6)$ 代入 $(5)$ 得
+$$
+\begin{aligned}
+\frac{1}{a} \int_{m}^{n} \frac{1}{(x + \frac{b}{2a})^2}dx
+&= \frac{1}{a} \int_{m + \frac{b}{2a}}^{n + \frac{b}{2a}} \frac{1}{t^2}dt\\
+&=\frac{1}{a} (-\frac{1}{t}\biggm\vert
+\begin{matrix}
+n + \frac{b}{2a} \cr
+m + \frac{b}{2a}
+\end{matrix})\\
+&=-\frac{1}{a}(\frac{1}{n + \frac{b}{2a}} - \frac{1}{m + \frac{b}{2a}})\\
+&=-\frac{1}{a}(\frac{2a}{2an + b} - \frac{2a}{2am + b})\\
+&=2(\frac{1}{2am + b} - \frac{1}{2an + b})
+\end{aligned}
+$$
+只要 $m \ne -\frac{b}{2a}$ 且 $n \ne -\frac{b}{2a}$（即 $y \ne 0$），上式的结果是可以求出的。而在我们的场景中，速度值恒为正，因此用取倒求定积分的方式求时间一直可行。
