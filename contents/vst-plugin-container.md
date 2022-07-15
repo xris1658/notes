@@ -133,8 +133,9 @@ VstIntPtr VSTCALLBACK HostCallback(AEffect* effect, VstInt32 opcode, VstInt32 in
 1. 在成功加载插件 Shell 后，我们无法立刻获知插件的个数，而需要逐个获取。
 1. 在逐个获取插件的信息时，我们只能获取 ID 和名称，而不能获取其他的信息（如插件是否为乐器等）。  
    多数 DAW 软件中，扫描插件的操作完成后，用户可以得知插件的名称和类型。如果我们需要在自己的程序中做到这一点，需要在获取到 ID 和名称后，使用每个插件的 ID 加载插件，然后获取相应信息。
+1. 扫描插件时，宿主程序不知道插件是否为 Shell，而 Shell 加载时会调用宿主程序的回调函数。此时宿主程序的返回值应该是多少？VST2 文档似乎没有指明扫描时的“默认”值，示例程序中既没有 Shell 插件的实现，也没有扫描 Shell 插件的宿主程序的实现。不同开发商选择的值可能不一样。有些插件在被调用宿主回调时接受的值为 0，有些插件接受的值为 Shell 返回的 ID。因此扫描 VST2 插件时可能出现兼容性问题，导致插件信息出现偏差。
 
-我们发现，使用 VST Shell 时，代码相对难写一些。幸运的是，VST3 中，编写和使用多个插件的容器变得简单了不少。
+VST3 中，编写和使用多个插件的容器变得简单了不少。
 ### VST3 - 导出类
 VST3 新增了导出类的特性。插件的开发者可以方便地给一个项目加入多个类和相应信息；宿主程序的开发者可以方便地获取插件导出类的个数和相应信息。
 
@@ -151,5 +152,6 @@ for(decltype(classCount) i = 0; i < classCount; ++i)
     // 读取 classInfo
 }
 ```
+需注意，VST3 插件返回的类信息是可变的。有些插件（如 Waves 的插件）会在加载插件时检测注册信息，在宿主程序获取类信息时，只返回本机注册的插件，属于一种反盗版机制。可通过对插件的工厂类 `IPluginFactory` 调用 `getFactoryInfo`，并检测返回结果中的标志位 `kClassesDiscardable` 即可。
 ### 来源
 [audio - How do I scan/enumerate vst plugin dlls? - Stack Overflow](https://stackoverflow.com/questions/1128958/how-do-i-scan-enumerate-vst-plugin-dlls)

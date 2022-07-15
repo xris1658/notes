@@ -16,7 +16,7 @@
 
 > The `high_resolution_clock` is not implemented consistently across different standard library implementations, and its use should be avoided. It is often just an alias for `std::chrono::steady_clock` or `std::chrono::system_clock`, but which one it is depends on the library or configuration. When it is a `system_clock`, it is not monotonic (e.g., the time can go backwards). For example, for gcc's libstdc++ it is `system_clock`, for MSVC it is `steady_clock`, and for clang's libc++ it depends on configuration.
 
-没错，`high_resolution_clock` 是由实现定义的。如果我们在 Windows 平台用 MSVC，那么使用的实现是 `steady_clock`，能够保证单调性；用 MinGW 的话就比较惨，因为使用的实现是 `system_clock`，而这一时钟不保证时间单调。
+没错，`high_resolution_clock` 是由实现定义的。如果我们在 Windows 平台用 MSVC，那么使用的实现是 `steady_clock`，能够保证单调性；用 MinGW 的话就比较惨，因为使用的实现是 `system_clock`，而这一时钟不保证时间单调。（`high_resolution_clock` 的成员函数 `is_steady()` 可用于检测时钟是否保证时间单调。）
 
 这么一来，保证跨平台（包括编译器）一致的选择就只剩下了 `steady_clock`。合适的时钟是选出来了，但事情还没有完。
 
